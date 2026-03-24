@@ -42,12 +42,14 @@ This project recreates Wordle's guessing mechanics and color-coded feedback.
 1. Install colorama if not already installed:
 ```bash
 pip install colorama
+```
 
 2. Clone this repository:
 
 ```bash
 git clone https://github.com/yourusername/wordle-terminal
 cd wordle-terminal
+```
 
 3. Compile and run
 
@@ -55,5 +57,5 @@ cd wordle-terminal
 
 ## Example
 
-<img width="329" height="143" alt="wordle_terminal_ss" src="https://github.com/user-attachments/assets/86ea7c31-32e1-4ddb-ad4d-ee3d9fde39e9" />
+<img width="500" alt="wordle_terminal_ss" src="wordle_terminal_ss.png" />
 
