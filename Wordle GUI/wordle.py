@@ -177,6 +177,7 @@ class WordleGUI:
 
         guess = "".join(self.tiles[self.curr_row][j].cget("text") for j in range(5)).lower()
         if guess not in self.words:
+            self.shake_row(self.curr_row)
             return  # Invalid word, add popup
         self.color_tiles(guess)
 
@@ -187,6 +188,25 @@ class WordleGUI:
             self.curr_col = 0
             if self.curr_row == 6:
                 self.game_over = True # add popup
+
+    # Add a shaking animation to the tiles in the specified row to indicate an invalid guess
+    def shake_row(self, row_index, times=3, distance=5, speed=40):
+        # Get all widgets in the specified row
+        row_widgets = self.tiles[row_index]
+        
+        def move(count):
+            if count < times * 2:
+                offset = distance if count % 2 == 0 else -distance
+                for widget in row_widgets:
+                    # Apply horizontal shake using padx
+                    widget.grid_configure(padx=(5 + offset, 5 - offset))
+                self.root.after(speed, lambda: move(count + 1))
+            else:
+                # Reset position
+                for widget in row_widgets:
+                    widget.grid_configure(padx=5)
+
+        move(0)
 
     # Color the tiles and update the keyboard based on the guess and the answer
     def color_tiles(self, guess):
