@@ -208,8 +208,7 @@ class WordleGUI:
 
         move(0)
 
-    # Color the tiles and update the keyboard based on the guess and the answer
-    def color_tiles(self, guess):
+    def color_tiles(self, guess, time_interval=150):
         # Count the number of each letter in the answer
         num_letters = {}
         for letter in self.answer:
@@ -218,32 +217,40 @@ class WordleGUI:
             else:
                 num_letters[letter] = 1
 
-        # First pass: color green and count down letters
+        color = [GRAY] * 5  # Default color is gray
+
+        # First pass to find correct letters in the correct position (green)
         for j in range(5):
             if self.answer[j] == guess[j]:
-                self.tiles[self.curr_row][j].config(bg=GREEN, fg=TEXT_GREEN)
-                self.keys[guess[j].upper()].config(bg=GREEN, fg=TEXT_GREEN, activebackground=HOVER_BG_GREEN, activeforeground=TEXT_GREEN)
+                color[j] = GREEN
                 num_letters[guess[j]] -= 1
         
-        # Second pass: color yellow and gray for remaining letters
+        # Second pass to find correct letters in the wrong position (yellow), but only if they haven't already been marked green
         for j in range(5):
-            tile = self.tiles[self.curr_row][j]
-            key = self.keys[guess[j].upper()]
-
-            # If the tile is already green, skip it so we don't overwrite the color of tile or keyboard
-            if tile.cget("bg") == GREEN:
-                continue
-            elif guess[j] in self.answer and num_letters.get(guess[j], 0) > 0:
-                tile.config(bg=YELLOW)
+            if color[j] == GRAY and guess[j] in self.answer and num_letters.get(guess[j], 0) > 0:
+                color[j] = YELLOW
                 num_letters[guess[j]] -= 1
-                # Only update the key color to yellow if it hasn't already been colored green
-                if key.cget("bg") != GREEN:
-                    key.config(bg=YELLOW, activebackground=HOVER_BG_YELLOW)
-            else:
-                tile.config(bg=GRAY)
-                # Only update the key color to gray if it hasn't already been colored green or yellow
-                if key.cget("bg") not in (GREEN, YELLOW):
-                    key.config(bg=GRAY, activebackground=HOVER_BG_GRAY)
+        
+        row = self.curr_row
+        # Schedule the color updates for each tile with a delay to create an animation effect
+        for j in range(5):
+            self.root.after(time_interval * (j + 1), self.update_tile_color, color[j], row, j, guess)
+
+    # Update the color of a specific tile and the corresponding keyboard key based on the calculated color
+    def update_tile_color(self, color, row, j, guess):
+        if color == GREEN:
+            self.tiles[row][j].config(bg=GREEN, fg=TEXT_GREEN)
+            self.keys[guess[j].upper()].config(bg=GREEN, fg=TEXT_GREEN, activebackground=HOVER_BG_GREEN, activeforeground=TEXT_GREEN)
+        elif color == YELLOW:
+            self.tiles[row][j].config(bg=YELLOW)
+            # Only update the key color to yellow if it hasn't already been colored green (green has priority)
+            if self.keys[guess[j].upper()].cget("bg") != GREEN:
+                self.keys[guess[j].upper()].config(bg=YELLOW, activebackground=HOVER_BG_YELLOW)
+        else:
+            self.tiles[row][j].config(bg=GRAY)
+            # Only update the key color to gray if it hasn't already been colored green or yellow
+            if self.keys[guess[j].upper()].cget("bg") not in (GREEN, YELLOW):
+                self.keys[guess[j].upper()].config(bg=GRAY, activebackground=HOVER_BG_GRAY)
 
     # Reset the game state and UI elements to start a new game
     def restart_game(self):
@@ -252,10 +259,17 @@ class WordleGUI:
         self.curr_col = 0
         self.game_over = False
 
+        # Cancel any pending color updates to prevent them from affecting the new game
+        ids = self.root.after_info()
+        for id in ids:
+            self.root.after_cancel(id)
+
+        # Reset all tiles to default color and empty text
         for r in range(6):
             for c in range(5):
                 self.tiles[r][c].config(text="", bg=TILE_BG, fg=TEXT)
 
+        # Reset all keyboard keys to default color
         for btn in self.keys.values():
             btn.config(bg=KEY_BG, activebackground=HOVER_BG, fg=TEXT, activeforeground=TEXT)
 
