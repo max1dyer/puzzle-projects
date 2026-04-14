@@ -30,6 +30,8 @@ class WordleGUI:
 
         self.tiles = []
         self.keys = {}
+        self.popup = None
+        self.popup_id = None
 
         self.build_widgets()
         # Bind physical keyboard events
@@ -172,22 +174,26 @@ class WordleGUI:
         if self.game_over:
             return
         
-        if self.curr_col != 5:
-            return  # Not enough letters, add popup
+        if self.curr_col != 5: # Not enough letters
+            self.show_popup("Not enough letters", 800)
+            return
 
         guess = "".join(self.tiles[self.curr_row][j].cget("text") for j in range(5)).lower()
-        if guess not in self.words:
+        if guess not in self.words: # Invalid word
             self.shake_row(self.curr_row)
-            return  # Invalid word, add popup
+            self.show_popup("Invalid word", 800)
+            return
         self.color_tiles(guess)
 
-        if guess == self.answer:
-            self.game_over = True # add popup
+        if guess == self.answer: # Correct guess
+            self.show_popup("Congratulations, you won!", 1600)
+            self.game_over = True
         else:
             self.curr_row += 1
             self.curr_col = 0
-            if self.curr_row == 6:
-                self.game_over = True # add popup
+            if self.curr_row == 6: # Out of guesses
+                self.show_popup(f"The word was: {self.answer.upper()}", 2000)
+                self.game_over = True
 
     # Add a shaking animation to the tiles in the specified row to indicate an invalid guess
     def shake_row(self, row_index, times=3, distance=5, speed=40):
@@ -208,6 +214,53 @@ class WordleGUI:
 
         move(0)
 
+    # Show a popup message with the specified text, geometry, and duration, and ensure that only one popup is shown at a time
+    def show_popup(self, message, duration):
+        if self.popup is not None:
+            self.popup.destroy()
+            self.popup = None
+
+        # Cancel any existing popup timer to prevent multiple popups from stacking
+        if self.popup_id is not None:
+            self.root.after_cancel(self.popup_id)
+            self.popup_id = None
+
+        self.popup = tk.Toplevel(self.root)
+        self.popup.overrideredirect(True)
+        self.popup.configure(bg=APP_BG)
+
+        label = tk.Label(
+            self.popup, 
+            text=message, 
+            font=("Arial", 11, "bold"), 
+            bd=1,
+            padx=10,
+            pady=5,
+            bg=APP_BG, 
+            fg=TEXT)
+        label.pack()
+
+        self.popup.update_idletasks()
+        # Center the popup horizontally relative to the main window and position it just below the title
+        root_x = self.root.winfo_rootx()
+        root_y = self.root.winfo_rooty()
+        root_w = self.root.winfo_width()
+        popup_w = self.popup.winfo_width()
+        x = root_x + (root_w - popup_w) // 2
+        y = root_y + 78
+        self.popup.geometry(f"+{x}+{y}")
+
+        # Close the popup after the specified duration
+        self.popup_id = self.root.after(duration, self.hide_popup)
+
+    # Destroy the popup window and reset the popup state variables
+    def hide_popup(self):
+        if self.popup is not None:
+            self.popup.destroy()
+            self.popup = None
+        self.popup_id = None
+
+    # Color the tiles based on the guess compared to the answer, with a delay to create an animation effect
     def color_tiles(self, guess, time_interval=150):
         # Count the number of each letter in the answer
         num_letters = {}
@@ -258,6 +311,7 @@ class WordleGUI:
         self.curr_row = 0
         self.curr_col = 0
         self.game_over = False
+        self.hide_popup()
 
         # Cancel any pending color updates to prevent them from affecting the new game
         ids = self.root.after_info()
