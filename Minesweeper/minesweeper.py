@@ -62,6 +62,7 @@ class MinesweeperGUI:
         self.mines_marked = 0
         self.cells_revealed = 0
         self.mode = True  # True for normal mode, False for adding mines mode
+        self.games_won = 0
         self.game_over = False
 
         self.popup = None
@@ -91,7 +92,7 @@ class MinesweeperGUI:
         controls = tk.Frame(self.root, bg=APP_BG)
         controls.pack(pady=(0, 10))
 
-        restart_btn = tk.Button(
+        self.restart_btn = tk.Button(
             controls,
             text="Restart",
             font=("Arial", 12, "bold"),
@@ -104,7 +105,7 @@ class MinesweeperGUI:
             padx=12,
             pady=4
         )
-        restart_btn.grid(row=0, column=0, padx=(0, 10))
+        self.restart_btn.grid(row=0, column=0, padx=(0, 10))
 
         # Create a button to toggle between normal mode (revealing cells) and marking mode (marking mines), with dynamic text that updates based on the current mode
         self.mode_btn = tk.Button(
@@ -132,6 +133,16 @@ class MinesweeperGUI:
             fg=TEXT
         )
         self.mine_label.grid(row=0, column=2, padx=(0, 10))
+
+        # Display the number of games won, updating dynamically when the player wins a game
+        self.games_won_label = tk.Label(
+            controls,
+            text=f"Games Won: {self.games_won}",
+            font=("Arial", 12),
+            bg=APP_BG,
+            fg=TEXT
+        )
+        self.games_won_label.grid(row=0, column=3, padx=(0, 10))
 
     # Reveal the cell at (r, c) and recursively reveal adjacent cells if it's empty
     def reveal_cell(self, r, c):
@@ -161,9 +172,12 @@ class MinesweeperGUI:
             else:
                 self.buttons[r][c].config(text=str(self.board[r][c]), disabledforeground = TEXT_COLORS[int(self.board[r][c] - 1)], font=('Arial', 9, 'bold'))
 
-            if self.cells_revealed == self.rows * self.cols - self.num_mines - 1:
+            if self.cells_revealed == self.rows * self.cols - self.num_mines:
                 self.mode_btn.config(state='disabled')
                 self.show_popup("Congratulations! You won!", 3000)
+                self.restart_btn.config(text="Play Again")
+                self.games_won += 1
+                self.games_won_label.config(text=f"Games Won: {self.games_won}")
                 self.game_over = True
 
     # Mark or unmark a mine at (r, c) based on the current mode
@@ -250,6 +264,7 @@ class MinesweeperGUI:
         self.mine_label.config(text=f"Mines: {self.num_mines - self.mines_marked}")
         self.hide_popup()
         self.cells_revealed = 0
+        self.restart_btn.config(text="Restart")
 
         # Cancel any pending mine reveals to prevent them from affecting the new game
         ids = self.root.after_info()
